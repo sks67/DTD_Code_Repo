@@ -1,0 +1,28 @@
+
+
+COVARIANCE MATRIX
+
+
+[[  3.31552167e+12   1.47414839e+04              nan              nan
+               nan              nan]
+ [  1.47414839e+04   1.68231384e-02              nan              nan
+               nan              nan]
+ [             nan              nan              nan              nan
+               nan              nan]
+ [             nan              nan              nan              nan
+               nan              nan]
+ [             nan              nan              nan              nan
+               nan              nan]
+ [             nan              nan              nan              nan
+               nan              nan]]
+
+
+CORRELATION MATRIX
+
+
+[[ 1.          0.06241827         nan         nan         nan         nan]
+ [ 0.06241827  1.                 nan         nan         nan         nan]
+ [        nan         nan         nan         nan         nan         nan]
+ [        nan         nan         nan         nan         nan         nan]
+ [        nan         nan         nan         nan         nan         nan]
+ [        nan         nan         nan         nan         nan         nan]]
