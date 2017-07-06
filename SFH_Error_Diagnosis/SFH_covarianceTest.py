@@ -1,4 +1,5 @@
 import numpy as np                        ##IMPORTS
+import numpy.ma as ma
 import os
 import glob
 import string
@@ -133,24 +134,37 @@ with open(pathName+galaxy+'_SFH_Cells_'+objClassName+obj_subtype+'_'+binningSche
         sfhMapMax[:,cell] = np.asarray(cellLineWords).astype(np.float)
 
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++#
-#++++++++++++++++++++++++++++++++++++++++++++++++++++#
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # Calculating Covariance matrix with total stellar mass
 # and fraction of masses in adjacent bins 
 #
-#++++++++++++++++++++++++++++++++++++++++++++++++++++#
-#++++++++++++++++++++++++++++++++++++++++++++++++++++#
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+#/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output
+np.savetxt(DTDpath+'DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output/sfhMap.txt', sfhMap)
+np.savetxt(DTDpath+'DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output/sfhMapMin.txt', sfhMapMin)
+np.savetxt(DTDpath+'DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output/sfhMapMax.txt', sfhMapMax)
 
-tot_mass_per_cell = np.sum(sfhMap, axis=0)  #column vector of total stellar mass per cells. Tested with a single cell
-f_bini_binj = np.array([massvect[:-1]/massvect[1:] for massvect in sfhMap.T]) #column vector of relative stellar mass fractions. Tested with single cells
+#column vector of total stellar mass per cells. Tested with a single cell
+tot_mass_per_cell = np.sum(sfhMap, axis=0)  
+
+#column vector of relative stellar mass fractions. Tested with single cells
+f_bini_binj = np.array([massvect[:-1]/massvect[1:] for massvect in sfhMap.T])
+ 
 sfhMap_newcoord = np.column_stack((tot_mass_per_cell, f_bini_binj)).T 
 
+#Some elements will have nans or infinities because many age bins don't have star-formation. We can mask these
+#values before doing covariance calculations
+ma_sfhMap_newcoord = ma.masked_invalid(sfhMap_newcoord)  
+
+#Lets output to a file so that we can share with Jeff
 f = open('covariance_outputs.txt', 'w')
 sys.stdout = f
 print '\n\nCOVARIANCE MATRIX\n\n'
-print np.cov(sfhMap_newcoord)
+print np.ma.cov(ma_sfhMap_newcoord)
 print '\n\nCORRELATION MATRIX\n\n'
-print np.corrcoef(sfhMap_newcoord)
+print np.ma.corrcoef(ma_sfhMap_newcoord)
 f.close()
 
 
