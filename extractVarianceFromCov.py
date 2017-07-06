@@ -14,6 +14,8 @@ sfhMap = np.loadtxt(path+'sfhMap.txt')
 sfhMapMin = np.loadtxt(path+'sfhMapMin.txt')
 sfhMapMax = np.loadtxt(path+'sfhMapMax.txt')
 
+#Even though log space has infinities, we can zero them. This means the bins with 0 Msun, have 1 Msun, which I believe
+#low enough as well on the astrophysical mass scale.
 log_sfhMap = np.log10(sfhMap)
 log_sfhMapMin = np.log10(sfhMapMin)
 log_sfhMapMax = np.log10(sfhMapMax)
@@ -21,14 +23,14 @@ log_sfhMapMax = np.log10(sfhMapMax)
 log_sfhMap[np.isneginf(log_sfhMap)] = 0
 log_sfhMapMin[np.isneginf(log_sfhMapMin)] = 0
 log_sfhMapMax[np.isneginf(log_sfhMapMax)] = 0
+
+#Masked SFH maps. Covariance from these maps completely skips over many SFH pixels, which may not be what we want
 if 0:
     ma_log_sfhMap = ma.masked_invalid(log_sfhMap)
     ma_log_sfhMapMin = ma.masked_invalid(log_sfhMapMin)
     ma_log_sfhMapMax = ma.masked_invalid(log_sfhMapMax)
 
 np.set_printoptions(precision=1)
-
-
 
 cov_sfh = np.cov(sfhMap)
 #cov_log_sfh = np.ma.cov(ma_log_sfhMap)

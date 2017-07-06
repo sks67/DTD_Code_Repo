@@ -21,24 +21,24 @@ from astropy.time import Time
 
 
 #Read Generic catalogs
-
-if True:
-   fileName = 'InputFiles/OGLE_LMC_ClassCeph.txt'
+DTDpath = '/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/'
+if False:
+   fileName = DTDpath+'InputFiles/OGLE_LMC_ClassCeph.txt'
    objClassName = 'Cepheids'
    refName = 'OGLE'
 
 if False:
-   fileName = 'InputFiles/OGLE_LMC_Type2Ceph.txt'
+   fileName = DTDpath+'InputFiles/OGLE_LMC_Type2Ceph.txt'
    objClassName = 'Type2_Cepheids'
    refName = 'OGLE'
 
 if False:
-   fileName = 'InputFiles/OGLE_LMC_AnomCeph.txt'
+   fileName = DTDpath+'InputFiles/OGLE_LMC_AnomCeph.txt'
    objClassName = 'Anom_Cepheids'
    refName = 'OGLE'
 
 if False:
-   fileName = 'InputFiles/OGLE_LMC_DeltaScuti.txt'
+   fileName = DTDpath+'InputFiles/OGLE_LMC_DeltaScuti.txt'
    objClassName = 'DeltaScuti'
    refName = 'OGLE'
 
@@ -60,8 +60,8 @@ if False:
 ## objClassName = 'DeltaScuti'
 ## refName = 'OGLE'
 
-if False:
-    fileName = './InputFiles/OGLE_LMC_RRLyrae.txt'
+if True:
+    fileName = DTDpath + 'InputFiles/OGLE_LMC_RRLyrae.txt'
     firstLine = 7
     lastLine = 24913
     objClassName = 'RRLyrae'
@@ -86,7 +86,7 @@ if False:
 ## refName = 'Badenes_etal'
 
 if False:
-    fileName = 'InputFiles/lmc_dtd.dat'
+    fileName = DTDpath + 'InputFiles/lmc_dtd.dat'
     firstLine = 0
     lastLine = 573
     objClassName = 'PNe'
@@ -108,13 +108,13 @@ if False:
 #NOTE - if you're downloading data from OGLE, remove the '#' in the .txt file in the 
 #headings row where 'ID', 'RA', 'Dec' etc is.
 
-obj_subtype = 'F1'
+obj_subtype = 'All'
 objListRA, objListDec = dtdutils.object_ra_decs(fileName, objClassName, obj_subtype=obj_subtype)
 
 #Read SFH map
 
-sfhFileName = 'MC_SFH_Maps/lmc_sfh.dat'
-outPathName = 'Output_SFH_Files/'
+sfhFileName = DTDpath + 'MC_SFH_Maps/lmc_sfh.dat'
+outPathName = DTDpath + 'Output_SFH_Files/'
 print 'Reading SFH from file '+sfhFileName
 nCells = 0
 nAgeBins = 16
@@ -155,7 +155,7 @@ cellCentersRA = np.asarray(cellCentersRA)
 cellCentersDec = np.asarray(cellCentersDec)
 
 #Modified cell centers: read from file
-cellCentersFileName = 'LMC_SFH_Cell_Centers_Corrected.txt'
+cellCentersFileName = DTDpath + 'MC_SFH_Maps/LMC_SFH_Cell_Centers_Corrected.txt'
 undivCells = [item for item in range(nCells) if len(cellNames[item]) == 2]
 divCells = [item for item in range(nCells) if len(cellNames[item]) == 5]
 nColumns = 24
@@ -184,9 +184,9 @@ decOrigin = -72-0.75*decInc
     
 #Write file with number of objects in each cell that falls within the survey area
 if refName == 'OGLE' : 
-    surveyCells = [line.strip() for line in open('MC_SFH_Maps/LMC_SFH_Cells_OGLE.txt')]
+    surveyCells = [line.strip() for line in open(DTDpath + 'MC_SFH_Maps/LMC_SFH_Cells_OGLE.txt')]
 elif refName == 'Reid&Parker' :
-    surveyCells = [line.strip() for line in open('MC_SFH_Maps/LMC_SFH_Cells_Reid&Parker.txt')]
+    surveyCells = [line.strip() for line in open(DTDpath + 'MC_SFH_Maps/LMC_SFH_Cells_Reid&Parker.txt')]
 #    surveyCells = cellsinSFHSurvey(cellNames, cellCentersRA, cellCentersDec)
 else : 
     surveyCells = cellNames
@@ -220,7 +220,7 @@ print 'Total objects: ', nObjAcc, objMap.sum()
 
 #If requested, read LMC image and produce a map of objects
 if True :
-    fig = aplpy.FITSFigure('LMC60.M0NHC.FITS')
+    fig = aplpy.FITSFigure(DTDpath + 'InputFiles/LMC60.M0NHC.FITS')
     fig.set_theme('publication')
     fig.recenter(5.35*15.0,-68.75,radius=4.5)
     fig.set_axis_labels_font(size=16)

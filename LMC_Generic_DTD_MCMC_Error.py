@@ -25,9 +25,9 @@ nIterations = 50
 nParamsPerPage = 6
 
 #Read SFHs and object count
-objClassName = 'Cepheids'
+objClassName = 'RRLyrae'
 obj_subtype = 'All'
-binningScheme = 'Coarse'
+binningScheme = 'Unbinned'
 refName = 'OGLE'
 galaxy = 'LMC'
 
@@ -131,11 +131,6 @@ with open(pathName+galaxy+'_SFH_Cells_'+objClassName+obj_subtype+'_'+binningSche
         cellLineWords = string.split(f.readline().strip())
         sfhMapMax[:,cell] = np.asarray(cellLineWords).astype(np.float)
 
-print np.isnan(sfhMap)
-print np.cov(sfhMap)
-print sfhMapMin.shape
-print sfhMapMax.shape
-sys.exit()     
 print 'Objects found:', sum(objMap)
 
 #Print total masses formed
@@ -239,7 +234,7 @@ for iteration in np.arange(-3, nIterations) :
       sfhMapIter = randSfhMap[:,:,iteration]
     
     print 'Iteration ', iterName
-    filePrefix = 'Chains_Burnins_pngs/'+galaxy+'_'+objClassName+obj_subtype+'_'+binningScheme+iterName
+    filePrefix = DTDpath + 'Chains_Burnins_pngs/'+galaxy+'_'+objClassName+obj_subtype+'_'+binningScheme+iterName
     
     #Choose an initial set of DTDs for the walkers; normal in log around -10, sigma = 3
     log10PsiMean0 = -5.0
@@ -291,7 +286,7 @@ for iteration in np.arange(-3, nIterations) :
     print 'Writing chains to FITS file'
     hdu = fits.PrimaryHDU(sampler.chain)
     hdulist = fits.HDUList([hdu])
-    hdulist.writeto('MCMC_DTD_fits/DTD_'+objClassName+'/'+galaxy+'_MCMC_DTD_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'.fits', clobber = True)  
+    hdulist.writeto(DTDpath + 'MCMC_DTD_fits/DTD_'+objClassName+'/'+galaxy+'_MCMC_DTD_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'.fits', clobber = True)  
     hdulist.close()
 
     #Plot chains 

@@ -29,7 +29,7 @@ nParamsPerPage = 6
 #Read SFHs and object count
 objClassName = 'Cepheids'
 obj_subtype = 'All'
-binningScheme = 'Medium'
+binningScheme = 'Unbinned'
 refName = 'OGLE'
 galaxy = 'LMC'
 
@@ -142,9 +142,9 @@ with open(pathName+galaxy+'_SFH_Cells_'+objClassName+obj_subtype+'_'+binningSche
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output
-np.savetxt(DTDpath+'DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output/sfhMap.txt', sfhMap)
-np.savetxt(DTDpath+'DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output/sfhMapMin.txt', sfhMapMin)
-np.savetxt(DTDpath+'DTD_Code_Repo/SFH_Error_Diagnosis/sfHMap_output/sfhMapMax.txt', sfhMapMax)
+np.savetxt(DTDpath+'DTD_Code_Repo/sfHMap_output/sfhMap.txt', sfhMap)
+np.savetxt(DTDpath+'DTD_Code_Repo/sfHMap_output/sfhMapMin.txt', sfhMapMin)
+np.savetxt(DTDpath+'DTD_Code_Repo/sfHMap_output/sfhMapMax.txt', sfhMapMax)
 
 #column vector of total stellar mass per cells. Tested with a single cell
 tot_mass_per_cell = np.sum(sfhMap, axis=0)  
