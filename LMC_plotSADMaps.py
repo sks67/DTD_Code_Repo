@@ -113,6 +113,7 @@ objListRA, objListDec = dtdutils.object_ra_decs(fileName, objClassName, obj_subt
 
 sfhFileName = DTDpath + 'MC_SFH_Maps/lmc_sfh.dat'
 outPathName = DTDpath + 'Output_SFH_Files/'
+plotPathName = DTDpath + 'Writeup/'
 print 'Reading SFH from file '+sfhFileName
 nCells = 0
 nAgeBins = 16
@@ -216,15 +217,14 @@ for cell in range(nCells) :
 print 'HZ cells in survey area: ', cellInSurvey.sum()
 print 'Total objects: ', nObjAcc, objMap.sum()
 
-###================================================##
-### <><><><><><> FITS Table approach <><><><><><><>##
-###================================================##
+print cellCentersRA[cellInSurvey].shape
+print cellCentersDec[cellInSurvey].shape
 
 
-
+line_list = [np.array([[cellCentersRA[0], cellCentersRA[-1]], [cellCentersDec[0], cellCentersDec[0]]])]
 #If requested, read LMC image and produce a map of objects
 print '\n\nMaking object Map...'
-if False :
+if True :
     fig = aplpy.FITSFigure(DTDpath + 'InputFiles/LMC60.M0NHC.FITS')
     fig.set_theme('publication')
     fig.recenter(5.35*15.0,-68.75,radius=4.5)
@@ -296,44 +296,6 @@ for scheme in range(nSchemes) :
 
     sfhMapBinnedList.append(sfhMapBinned)
 
-    #Write SFH_Cells files
-    #corrListScheme = np.zeros(nBinsScheme)
-    #corrListSchemeNorm = np.zeros(nBinsScheme)
-    with open(outPathName+'LMC_SFH_Cells_'+objClassName+obj_subtype+'_'+binningSchemeNames[scheme]+'.dat', 'w') as f:
-        for cell in range(nCells) :
-            if cellNames[cell] in surveyCells :
-                f.write('%s  %i ' % (cellNames[cell], objMap[cell]))
-                f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,0,cell]))
-                f.write('\n')
-                f.write('         ')
-                f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,1,cell]))
-                f.write('\n')
-                f.write('         ')
-                f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,2,cell]))
-                f.write('\n')
-                #corrListScheme += objMap[cell]*sfhMapBinned[:,0,cell]
-                #corrListSchemeNorm += sfhMapBinned[:,0,cell]
-                #stellarMassFormed[:,0] += sfhMapBinned[:,0,cell]
-
-                #corrList.append(corrListScheme/corrListSchemeNorm)
-
-    #Write SFH_Cells files for random objects
-    generateRandom = False
-    if generateRandom :
-        with open(outPathName+'LMC_SFH_Cells_Random_Reid&Parker_500_'+binningSchemeNames[scheme]+'.dat', 'w') as f:
-            for cell in range(nCells) :
-                if cellNames[cell] in surveyCells :
-                    objCell = np.random.poisson(500.0*sfhMapTotal[cell]/sfhMapTotal.sum())
-                    f.write('%s  %i ' % (cellNames[cell], objCell))
-                    f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,0,cell]))
-                    f.write('\n')
-                    f.write('         ')
-                    f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,1,cell]))
-                    f.write('\n')
-                    f.write('         ')
-                    f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,2,cell]))
-                    f.write('\n')
-
 #Plot maps
 createMaps = True
 if createMaps :                    
@@ -372,15 +334,15 @@ if createMaps :
     plt.rcParams.update({'font.size': 8})
     plt.rcParams.update({'mathtext.default':'regular'})
     plt.rcParams.update({'mathtext.fontset':'stixsans'})
-    plt.rcParams.update({'axes.linewidth': 1.0})
-    plt.rcParams.update({'xtick.major.size': 5})
-    plt.rcParams.update({'xtick.major.width': 1.25 })
-    plt.rcParams.update({'xtick.minor.size': 2.5})
-    plt.rcParams.update({'xtick.minor.width': 1.25 })
-    plt.rcParams.update({'ytick.major.size': 5})
-    plt.rcParams.update({'ytick.major.width': 1.25 })
-    plt.rcParams.update({'ytick.minor.size': 2.5})
-    plt.rcParams.update({'ytick.minor.width': 1.25 })
+    plt.rcParams.update({'axes.linewidth': 0.5})
+    plt.rcParams.update({'xtick.major.size': 2})
+    plt.rcParams.update({'xtick.major.width': 0.25 })
+    plt.rcParams.update({'xtick.minor.size': 1})
+    plt.rcParams.update({'xtick.minor.width': .25 })
+    plt.rcParams.update({'ytick.major.size': 2})
+    plt.rcParams.update({'ytick.major.width': .25 })
+    plt.rcParams.update({'ytick.minor.size': 1})
+    plt.rcParams.update({'ytick.minor.width': .25 })
 
 #Plot unbinned, no objects
 print 'Making plots :- \n\n'
@@ -408,24 +370,27 @@ colorscheme = ['#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800
  #Plot unbinned
 print 'Unbinned Map with objects...'
 if True:
-    plotFileName = outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_'+refName+'_Unbinned_Maps.pdf'
+    plotFileName = plotPathName+'LMC_'+objClassName+'_'+obj_subtype+'_'+refName+'_Unbinned_Maps.pdf'
     plt.figure(1,figsize = [11.0, 8.5])
     plt.clf()
     f, axArr = plt.subplots(4, 4, sharex = True, sharey = True, squeeze = True) 
-    f.tight_layout()  
+    f.subplots_adjust(hspace=-0.1, wspace=-0.1)
     for ageBin in range(nAgeBins) :
         row = int(np.floor(ageBin/4))
         column = ageBin-4*row
+        row, column = 3-row, 3-column
         axArr[row,column].set_xlim([2.*nColumns,0])
         axArr[row,column].set_ylim([0,2.*nRows])
         axArr[row,column].axis('on')
         axArr[row,column].imshow(np.transpose(sfhMapImages[ageBin,:,:]), origin='lower', interpolation='none', cmap = 'Greys')
-        fact, unit = (1.0e6, ' Myrs') if logAgeArr[ageBin]<9. else (1.0e9, ' Gyrs')
-        age = np.around(10**logAgeArr[ageBin]/fact, decimals=1)
-        axArr[row,column].text(0.1, 0.9, str(age)+unit, fontsize=6, transform=axArr[row,column].transAxes)
+        fact1, unit1 = (1.0e6, ' Myrs') if logAgeLimsArr[ageBin]<9. else (1.0e9, ' Gyrs')
+        age1 = np.around(10**logAgeLimsArr[ageBin]/fact1, decimals=1)
+        fact2, unit2 = (1.0e6, ' Myrs') if logAgeLimsArr[ageBin+1]<9. else (1.0e9, ' Gyrs')
+        age2 = np.around(10**logAgeLimsArr[ageBin+1]/fact2, decimals=1)
+
+        axArr[row,column].text(0.1, 0.9, str(age1)+' '+unit1+' - '+str(age2)+' '+unit2, fontsize=6, transform=axArr[row,column].transAxes)
 #        axArr[row,column].plot((15.0*np.asarray(objListRA)-cellCentersRA[0])/(0.5*raInc),(np.asarray(objListDec)-cellCentersDec[0])/(0.5*decInc),'r.',ms=0.5, alpha=0.1)
         axArr[row, column].contour(heatmap.T, extent=extent, levels=[20, 40, 70, 100, 150, 200, 250], linewidths=1.0, colors=colorscheme, origin='lower')
-    plt.tight_layout()    
     plt.savefig(plotFileName)
 
 ##RRLyraeLB Map
@@ -447,8 +412,9 @@ if True:
         axArr[row,column].axis('off')
         axArr[row,column].imshow(np.transpose(sfhMapRRLyraeLBImages[ageBin,:,:]), origin='lower', interpolation='none', cmap = 'Greys')
         ageBin_correct = binningSchemes[scheme][ageBin][-1]
-        age = np.around(10**logAgeArr[ageBin_correct]/fact, decimals=1)
         fact, unit = (1.0e6, ' Myrs') if logAgeArr[ageBin_correct]<9. else (1.0e9, ' Gyrs')
+        age = np.around(10**logAgeArr[ageBin_correct]/fact, decimals=1)
+
         axArr[row,column].text(0.1, 0.9, 'Age = '+str(age)+unit, fontsize=6, transform=axArr[row,column].transAxes)
         #axArr[row,column].plot((15.0*np.asarray(objListRA)-cellCentersRA[0])/(0.5*raInc),(np.asarray(objListDec)-cellCentersDec[0])/(0.5*decInc),'r.',ms=0.5)
         axArr[row, column].contour(heatmap.T, extent=extent, levels=[20, 60, 100, 200], linewidths=1.0, colors=colorscheme, origin='lower')

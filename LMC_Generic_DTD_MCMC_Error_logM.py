@@ -1,6 +1,11 @@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Same program as LMC_Generic_DTD_MCMC_Error.py, except
+# SFHs are generated in log-space.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
 import numpy as np                        ##IMPORTS
-import os
-import glob
+import sys
 import string
 import emcee
 import corner
@@ -12,27 +17,26 @@ from matplotlib.backends.backend_pdf import PdfPages
 from astropy import constants as const
 from astropy.io import fits
 from astropy.io import ascii
-import sys
 import dtdplotutils as dtdplot
 reload(dtdplot)
+#import warnings
 
 DTDpath = '/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/'
 pathName = DTDpath + 'Output_SFH_Files/'
 
-checkSFH = raw_input('Save SFH comparisons? [y/n]: ')
-subclassFolder = 'RRLyrae_linearSFH'
+checkSFH = raw_input('Save sample randomized SFH plots? [y/n] : ')
 
 #MCMC Parameters
-nWalkers = 80
-chainLength = 3000
-nBurninSteps = 4000
+nWalkers = 1000
+chainLength = 4000
+nBurninSteps = 5000
 print 'Number of walkers, chain length, burn-in length: ', nWalkers, chainLength, nBurninSteps
-nIterations = 100
+nIterations = 12
 nParamsPerPage = 6
 
 #Read SFHs and object count
 objClassName = 'RRLyrae'
-obj_subtype = 'RRab'
+obj_subtype = 'All'
 binningScheme = 'Unbinned'
 refName = 'OGLE'
 galaxy = 'LMC'
@@ -146,7 +150,7 @@ print 'Objects found:', sum(objMap)
 
 #Calculate array of factorials for use in likelihoods
 objMapFact = misc.factorial(objMap)
-normThreshold = 25 #Threshold to use Normal instead of Poisson
+normThreshold = 0 #Threshold to use Normal instead of Poisson
 if objMap.max() >= normThreshold :
     normApp = True 
     normIndexes = np.where(objMap >= normThreshold)
@@ -166,7 +170,14 @@ def ln_like(psi, sfhMap, objMap, objMapFact, normApp, normIndexes, poissIndexes)
     else :
         likeArr = np.zeros(nCells) 
         likeArr[normIndexes] = -0.5*np.log(2.0*np.pi*l) - ((objMap-l)**2.0)/(2.0*l)
+       # warnings.filterwarnings("error")
         likeArr[poissIndexes] = -1.0 *l + np.log((l**objMap)/objMapFact)
+       # except RuntimeWarning:
+       #     print 'Run time warning error - lets see why'
+       #     print 'l = ', l.max()
+       #     print 'objMap = ', objMap.max()
+       #     print 'objMapFact = ', objMapFact.max()
+            
         return sum(likeArr)    
  
 def ln_prior(psi):
@@ -183,51 +194,51 @@ def ln_prob(psi, sfhMap, objMap, objMapFact, normApp, normIndexes, poissIndexes)
     ##     pdb.set_trace()
     #return np.nansum(ln_prior(psi),ln_like(psi, sfhMap, objMap, objMapFact, normApp, normIndexes, poissIndexes))
 
-#Exploration of SFH errors
-randSfhMap = np.zeros((nAgeBins,nCells,nIterations)) 
+
+print 'Randomizing SFH...'
+
+log_sfhMap = np.log10(sfhMap)
+log_sfhMapMin = np.log10(sfhMapMin)
+log_sfhMapMax = np.log10(sfhMapMax)
+
+log_sfhMap[np.isneginf(log_sfhMap)] = 0
+log_sfhMapMin[np.isneginf(log_sfhMapMin)] = 0
+log_sfhMapMax[np.isneginf(log_sfhMapMax)] = 0
+
+randSfhMap_maxerr = np.zeros((nAgeBins,nCells,nIterations))
+
+#for cell in np.arange(nCells):
+#    error_logM = np.maximum(log_sfhMapMax[:, cell] - log_sfhMap[:, cell], log_sfhMap[:, cell] - log_sfhMapMin[:, cell])
+#    cov_logM_cell = np.diag(error_logM**2.0)
+#    sfhBinCellRand = np.random.multivariate_normal(log_sfhMap[:, cell], cov_logM_cell, size = nIterations).T
+#    sfhBinCellRand[sfhBinCellRand < 0.0] = 0.0                                                                                                           
+#    randSfhMap_maxerr[:, cell, :] = sfhBinCellRand
+
+#Exploration of SFH errors                                                                                                                                    
 print 'Randomizing SFH'
 for cell in np.arange(nCells) :
     for ageBin in np.arange(nAgeBins) :
-        if sfhMap[ageBin,cell] == 0.0 : #Best-fit is 0
-            sfhBinCellRand = np.random.normal(0.0,sfhMapMax[ageBin,cell],nIterations)
+        if sfhMap[ageBin,cell] == 0.0 : #Best-fit is 0                                                                                                       
+            sfhBinCellRand = np.random.normal(0.0, log_sfhMapMax[ageBin, cell], nIterations)
             sfhBinCellRand[sfhBinCellRand < 0.0] = 0.0
-            randSfhMap[ageBin,cell,:] = sfhBinCellRand
-            
-        ## elif sfhMapMin[ageBin,cell] == 0.0 : #Lower limit is 0
-        ##     sfhBinCellRand = np.random.normal(sfhMap[ageBin,cell],sfhMapMax[ageBin,cell]-sfhMap[ageBin,cell],nIterations)
-        ##     sfhBinCellRand[sfhBinCellRand < 0.0] = 0.0
-        ##     randSfhMap[ageBin,cell,:] = sfhBinCellRand
-            
-        else :  #Best-fit is NOT 0
-            sfhBinCellRand = np.random.normal(sfhMap[ageBin,cell],sfhMap[ageBin,cell]-sfhMapMin[ageBin,cell],nIterations)
+            randSfhMap_maxerr[ageBin,cell,:] = sfhBinCellRand
+
+        else :  #Best-fit is NOT 0                                                                                                                        
+            sfhBinCellRand = np.random.normal(log_sfhMap[ageBin, cell], log_sfhMap[ageBin, cell] - log_sfhMapMin[ageBin, cell], nIterations)
             sfhBinCellRand[sfhBinCellRand < 0.0] = 0.0
-            randSfhMap[ageBin,cell,:] = sfhBinCellRand
-            ## low = sfhMapMin[ageBin,cell]
-            ## mean = sfhMap[ageBin,cell]
-            ## high = sfhMapMax[ageBin,cell]
-            ## lowGauss = np.random.normal(mean,(mean-low),3*nIterations)
-            ## lowGauss[lowGauss < 0.0] = 0.0
-            ## lowGaussClip = lowGauss[lowGauss < mean]
-            ## highGauss = np.random.normal(mean,high-mean,3*nIterations)
-            ## highGaussClip = highGauss[highGauss > mean]
-            ## frankenGauss = np.concatenate([lowGaussClip[0:nIterations],highGaussClip[0:nIterations]])
-            ## np.random.shuffle(frankenGauss)
-            ## randSfhMap[ageBin,cell,:] = frankenGauss[0:nIterations]
+            randSfhMap_maxerr[ageBin,cell,:] = sfhBinCellRand
 
-#Save randomized and nominal maps
-#np.save('/Users/badenes/python/MC_MCMC/MCMC_Error/Error_Random/'+galaxy+'_'+refName+'_'+binningScheme+'_randomSFHMap',randSfhMap) 
-#np.save('/Users/badenes/python/MC_MCMC/MCMC_Error/Error_Random/'+galaxy+'_'+refName+'_'+binningScheme+'_SFHMap',sfhMap) 
-#np.save('/Users/badenes/python/MC_MCMC/MCMC_Error/Error_Random/'+galaxy+'_'+refName+'_'+binningScheme+'_SFHMapMin',sfhMapMin) 
-#np.save('/Users/badenes/python/MC_MCMC/MCMC_Error/Error_Random/'+galaxy+'_'+refName+'_'+binningScheme+'_SFHMapMax',sfhMapMax) 
-
-print 'Running ', nIterations, ' iterations.'
+#The errors won't look correct unless you have many nIterations.
 if checkSFH == 'y':
-    dtdplot.check_randSFH(sfhMap, sfhMapMax, sfhMapMin, randSfhMap, binning='Unbinned', fileSuffix = subclassFolder,  showPlot = False)
+    dtdplot.check_randSFH(log_sfhMap, log_sfhMapMax, log_sfhMapMin, randSfhMap_maxerr, binning='Unbinned', fileSuffix='max_800walkers',  showPlot = False)
     print 'Plot saved in DTD_Plots/'
 
-#sys.exit()
+randSfhMap = 10.0**randSfhMap_maxerr
+randSfhMap[np.where(randSfhMap == 1.0)] = 0.
 print randSfhMap.shape
-for iteration in np.arange(-3, nIterations) :
+#Run Iterations
+print 'Running ', nIterations, ' iterations.'
+for iteration in np.arange(0, nIterations) :
 
     if iteration == -3 :
         iterName = '_Nominal'
@@ -246,13 +257,13 @@ for iteration in np.arange(-3, nIterations) :
       sfhMapIter = randSfhMap[:,:,iteration]
     
     print 'Iteration ', iterName
-    filePrefix = DTDpath + 'Chains_Burnins_pngs/'+galaxy+'_'+objClassName+obj_subtype+'_'+binningScheme+iterName
+    filePrefix = DTDpath + 'Chains_Burnins_pngs/'+galaxy+'_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'_maxerr_800walkers'
     
     #Choose an initial set of DTDs for the walkers; normal in log around -10, sigma = 3
     log10PsiMean0 = -5.0
     log10PsiSigma0 = 0.1
     log10Psi0 = [log10PsiSigma0*np.random.randn(nAgeBins)+log10PsiMean0 for i in xrange(nWalkers)]
-    psi0 = np.power(10.0,log10Psi0)
+    psi0 = np.power(10.0, log10Psi0)
 
     ## #Choose randomized sfh map
     ## if iteration == 0 :
@@ -278,7 +289,7 @@ for iteration in np.arange(-3, nIterations) :
     print 'Mean acceptance fraction during Burn-in:', afb
     if afb < afbThreshold :
         print 'Something went wrong'
-        if step == nSteps-1 : sys.exit('End of loop.')
+#        if step == nSteps-1 : sys.exit('End of loop.')
     else :
         print 'Success!'
         
@@ -298,8 +309,8 @@ for iteration in np.arange(-3, nIterations) :
     print 'Writing chains to FITS file'
     hdu = fits.PrimaryHDU(sampler.chain)
     hdulist = fits.HDUList([hdu])
-    hdulist.writeto(DTDpath + 'MCMC_DTD_fits/DTD_'+objClassName+'/'+ subclassFolder+'/'+galaxy+'_MCMC_DTD_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'.fits', clobber = True)  
+    hdulist.writeto(DTDpath + 'MCMC_DTD_fits/DTD_'+objClassName+'/'+galaxy+'_MCMC_DTD_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'_maxerr_800walkers.fits', clobber = True)  
     hdulist.close()
 
     #Plot chains 
-    plotchains(sampler,nParamsPerPage,filePrefix+subclassFolder,'.png')
+    plotchains(sampler,nParamsPerPage,filePrefix,'.png')

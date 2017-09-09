@@ -12,6 +12,7 @@ from astropy import units as u
 from astropy import wcs
 from astropy.io import fits
 from astropy.io import ascii
+from astropy.table import Table
 from astropy.coordinates import Angle
 from astropy.coordinates import SkyCoord
 from astropy import coordinates as coord
@@ -143,7 +144,7 @@ def dtd_staterrors(data_nominal):
 
     return (med, staterror, isuplim)
 
-def dtd_stat_randomsad_errors(data_nominal, data_SFH):
+def dtd_stat_randomsad_errors(data_nominal, data_SFH, mult_factor=1.,makeErrorTable = True):
     """
     Returns the DTD per bin with combined statistical and sad errors 
 
@@ -152,6 +153,9 @@ def dtd_stat_randomsad_errors(data_nominal, data_SFH):
 
     data_nominal: ndarray
                 MCMC chain contain dtd for the nominal SFH
+
+    mult_factor: int/float
+                Scaling factor for the DTD plots
 
     Return
     ------
@@ -166,8 +170,11 @@ def dtd_stat_randomsad_errors(data_nominal, data_SFH):
     """
     med = []
     staterror = []
+    actual_error = []
+    actual_med = []
+    actual_2sig = []
     isuplim = []
-    for (data_nom, data_sfh) in zip(data_nominal.T, data_SFH.T):
+    for (data_nom, data_sfh) in zip(mult_factor*data_nominal.T, mult_factor*data_SFH.T):
 
         hpd_nom_2sigma = hpd(data_nom, 0.95) 
         hpd_nom_1sigma = hpd(data_nom, 0.68)
@@ -186,16 +193,19 @@ def dtd_stat_randomsad_errors(data_nominal, data_SFH):
             isuplim.append(True)
             med.append(mode + dtd_2sigma) 
             staterror.append(dtd_2sigma)
-  
-    
+      
         else:
             isuplim.append(False)
             med.append(mode)
             staterror.append(np.array([dtd_1sigma_low , dtd_1sigma_up]))
 
-    return (med, staterror, isuplim)
+        #I also want to look at the actual error bars to assess the detection significance
+        actual_error.append([dtd_1sigma_low, dtd_1sigma_up])
+        actual_med.append(mode_sfh)
 
-def dtd_randomsad_errors(data_SFH):
+    return (med, staterror, actual_med, actual_error, isuplim)
+
+def dtd_randomsad_errors(data_SFH, mult_factor=1., saveTable = True):
     """
     Returns the DTD per bin with sad errors only
 
@@ -217,9 +227,12 @@ def dtd_randomsad_errors(data_SFH):
            Tells whether each bin has a detection or not
     """
     med = []
-    error = []
+    error = []  #Whether error bars or upper limit for a given measurement
+    actual_error = []
+    actual_med = []
+    actual_dtd_2sig = []
     isuplim = []
-    for data_sfh in data_SFH.T:
+    for data_sfh in mult_factor*data_SFH.T:
 
 
         hpd_sfh_2sigma = hpd(data_sfh, 0.95)
@@ -240,8 +253,23 @@ def dtd_randomsad_errors(data_SFH):
             isuplim.append(False)
             med.append(mode_sfh)
             error.append(np.array([dtd_1sigma_low , dtd_1sigma_up]))
+    
+        #I also want to look at the actual error bars to assess the detection significance
+        actual_error.append(np.array([dtd_1sigma_low, dtd_1sigma_up]))
+        actual_med.append(mode_sfh)
+        actual_dtd_2sig.append(dtd_2sigma)
 
-    return (med, error, isuplim)
+    if saveTable:
+        t = Table()
+        t['bestfit'] = actual_med
+        t['plotpoint'] = med
+        t['1sigma_low'] = np.asarray(actual_error)[:, 0]
+        t['1sigma_up'] = np.asarray(actual_error)[:, 1]
+        t['2sigma'] = actual_dtd_2sig
+        t['isuplim'] = isuplim
+        t.meta['comments'] = ['Errors on DTD']
+        t.write('DTD_Error_Table.txt', overwrite=True, format='ascii')
+    return (med, error, actual_med, actual_error, isuplim)
 
 
 def dtd_saderrors(data_low, data_nominal, data_high):
