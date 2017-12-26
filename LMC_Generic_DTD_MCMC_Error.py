@@ -19,23 +19,24 @@ reload(dtdplot)
 DTDpath = '/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/'
 pathName = DTDpath + 'Output_SFH_Files/'
 
-checkSFH = raw_input('Save SFH comparisons? [y/n]: ')
-subclassFolder = 'RRLyrae_linearSFH'
 
 #MCMC Parameters
 nWalkers = 80
 chainLength = 3000
 nBurninSteps = 4000
 print 'Number of walkers, chain length, burn-in length: ', nWalkers, chainLength, nBurninSteps
-nIterations = 100
+nIterations = 0
 nParamsPerPage = 6
 
 #Read SFHs and object count
 objClassName = 'RRLyrae'
-obj_subtype = 'RRab'
+obj_subtype = 'All'
 binningScheme = 'Unbinned'
 refName = 'OGLE'
 galaxy = 'LMC'
+checkSFH = 'n'#raw_input('Save SFH comparisons? [y/n]: ')
+subclassFolder = 'RRLyrae_linearSFH'
+file_special_prefix = 'Fake_' #If, e.g., you're doing the fake maps. If not, then set galaxy_pref = ''
 
 #Function to plot chains 
 def plotchains(sampler,nParamsPerPage,filePrefix,fileSuffix):
@@ -127,7 +128,7 @@ sfhMap = np.zeros((nAgeBins,nCells))
 sfhMapMin = np.zeros((nAgeBins,nCells))
 sfhMapMax = np.zeros((nAgeBins,nCells))
 sfhMapRange = np.zeros((nAgeBins,nCells))
-with open(pathName+galaxy+'_SFH_Cells_'+objClassName+obj_subtype+'_'+binningScheme+'.dat', 'r') as f:
+with open(pathName+file_special_prefix+galaxy+'_SFH_Cells_'+objClassName+obj_subtype+'_'+binningScheme+'.dat', 'r') as f:
     for cell in np.arange(nCells) :
         cellLineWords = string.split(f.readline().strip())
         objMap[cell] = float(cellLineWords[1])
@@ -270,7 +271,7 @@ for iteration in np.arange(-3, nIterations) :
     pos, prob, state = sampler.run_mcmc(psi0, nBurninSteps)
 
     #Plot burn-in 
-    plotchains(sampler,nParamsPerPage,filePrefix,'_Burn-in.png')         
+#    plotchains(sampler,nParamsPerPage,filePrefix,'_Burn-in.png')         
 
     #Check that burn-in went well
     afb = np.mean(sampler.acceptance_fraction)
@@ -298,8 +299,8 @@ for iteration in np.arange(-3, nIterations) :
     print 'Writing chains to FITS file'
     hdu = fits.PrimaryHDU(sampler.chain)
     hdulist = fits.HDUList([hdu])
-    hdulist.writeto(DTDpath + 'MCMC_DTD_fits/DTD_'+objClassName+'/'+ subclassFolder+'/'+galaxy+'_MCMC_DTD_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'.fits', clobber = True)  
+    hdulist.writeto(DTDpath + file_special_prefix+'MCMC_DTD_fits/DTD_'+objClassName+'/'+ subclassFolder+'/'+galaxy+'_MCMC_DTD_'+objClassName+obj_subtype+'_'+binningScheme+iterName+'.fits', clobber = True)  
     hdulist.close()
 
     #Plot chains 
-    plotchains(sampler,nParamsPerPage,filePrefix+subclassFolder,'.png')
+#    plotchains(sampler,nParamsPerPage,filePrefix+subclassFolder,'.png')

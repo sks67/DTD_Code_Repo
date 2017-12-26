@@ -18,7 +18,7 @@ from astropy.coordinates import SkyCoord
 from astropy import coordinates as coord
 from astropy.time import Time
 
-def sfh_ageBins(scheme):
+def sfh_ageBins(scheme, return_age_edge_array=False):
     """
     Returns the age bins for the SFH Binning scheme used.
 
@@ -51,7 +51,10 @@ def sfh_ageBins(scheme):
     logAgeCentroids = np.log10(ageBins)[:-1] + (np.log10(ageBins[1:])-np.log10(ageBins[:-1]))/2.0
     ages = (10**logAgeCentroids)
     
-    return (ages, np.array(ageBins[:-1]), np.array(ageBins[1:]))
+    if return_age_edge_array:
+        return (np.array(ages), np.array(ageBins))
+    else:
+        return (ages, np.array(ageBins[:-1]), np.array(ageBins[1:]))
 
 def hpd(trace, mass_frac) :
     """
@@ -121,6 +124,7 @@ def dtd_staterrors(data_nominal):
     med = np.zeros(data_nominal.shape[1])
     staterror = []
     isuplim = []
+    det_sig = []
     for i, data in enumerate(data_nominal.T):
 
         hpd_2sigma = hpd(data, 0.95) 
@@ -129,7 +133,7 @@ def dtd_staterrors(data_nominal):
         n, bins = np.histogram(data, bins=100)
         x = bins[:-1] + (bins[1:] - bins[:-1]) / 2.0
         mode = x[np.where(n == n.max())][0]   #Extra because sometimes two modes might correspond to n.max()
-
+        det_sig.append(2.0*mode/(hpd_2sigma[1]-mode))
 
         if (2.0*mode - hpd_2sigma[1]) < 0:
             isuplim.append(True)
@@ -142,9 +146,9 @@ def dtd_staterrors(data_nominal):
             med[i]      = mode
             staterror.append(np.array([ med[i] - hpd_1sigma[0], hpd_1sigma[1] - med[i]]))
 
-    return (med, staterror, isuplim)
+    return (med, staterror, isuplim, det_sig)
 
-def dtd_stat_randomsad_errors(data_nominal, data_SFH, mult_factor=1.,makeErrorTable = True):
+def dtd_stat_randomsad_errors(data_nominal, data_SFH, mult_factor=1., makeErrorTable = True):
     """
     Returns the DTD per bin with combined statistical and sad errors 
 
@@ -174,6 +178,7 @@ def dtd_stat_randomsad_errors(data_nominal, data_SFH, mult_factor=1.,makeErrorTa
     actual_med = []
     actual_2sig = []
     isuplim = []
+    det_sig = []
     for (data_nom, data_sfh) in zip(mult_factor*data_nominal.T, mult_factor*data_SFH.T):
 
         hpd_nom_2sigma = hpd(data_nom, 0.95) 
@@ -188,6 +193,7 @@ def dtd_stat_randomsad_errors(data_nominal, data_SFH, mult_factor=1.,makeErrorTa
         dtd_2sigma = np.sqrt((hpd_sfh_2sigma[1] - mode_sfh)**2 + (hpd_nom_2sigma[1] - mode_nom)**2)
         dtd_1sigma_low = np.sqrt((mode_sfh - hpd_sfh_1sigma[0])**2 + (mode_nom - hpd_nom_1sigma[0])**2)
         dtd_1sigma_up = np.sqrt((hpd_sfh_1sigma[1] - mode_sfh)**2 + (hpd_nom_1sigma[1] - mode_sfh)**2)
+        det_sig.append(2.0*mode/dtd_2sigma)
 
         if (mode - dtd_2sigma) < 0:
             isuplim.append(True)
@@ -203,16 +209,68 @@ def dtd_stat_randomsad_errors(data_nominal, data_SFH, mult_factor=1.,makeErrorTa
         actual_error.append([dtd_1sigma_low, dtd_1sigma_up])
         actual_med.append(mode_sfh)
 
-    return (med, staterror, actual_med, actual_error, isuplim)
+    return (med, staterror, actual_med, actual_error, isuplim, det_sig)
 
-def dtd_randomsad_errors(data_SFH, mult_factor=1., saveTable = True):
+def dtd_all_errors(data_nominal, data_SFH):
     """
-    Returns the DTD per bin with sad errors only
+    Returns the DTD per bin, and the statistical, SAD errors without calculating detections
 
     Parameter
     ---------
 
     data_nominal: ndarray
+                MCMC chain contain dtd for the nominal SFH
+
+    mult_factor: int/float
+                Scaling factor for the DTD plots
+
+    Return
+    ------
+    med: ndarray, float
+           Median value of the DTD in the given bin or 2-sigma upper limit
+
+    staterror: ndarray, float
+           Statistical errors (or just median - mode if upper limit)
+
+    isuplim: ndarray, boolean
+           Tells whether each bin has a detection or not
+    """
+    mode_nom_arr = []
+    mode_sfh_arr = []
+    dtd_staterr_up = []
+    dtd_staterr_down = []
+    dtd_sfherr_up = []
+    dtd_sfherr_down = []
+    det_sig_stat = []
+    det_sig_sfh = []
+    for (data_nom, data_sfh) in zip(data_nominal.T, data_SFH.T):
+
+        hpd_nom_2sigma = hpd(data_nom, 0.95) 
+        hpd_nom_1sigma = hpd(data_nom, 0.68)
+        mode_nom = dtd_mode(data_nom)
+        mode_nom_arr.append(mode_nom)
+
+        hpd_sfh_2sigma = hpd(data_sfh, 0.95)
+        hpd_sfh_1sigma = hpd(data_sfh, 0.68)
+        mode_sfh = dtd_mode(data_sfh)
+        mode_sfh_arr.append(mode_sfh)
+
+        dtd_2sig_stat = hpd_nom_2sigma[1] - mode_nom
+        dtd_2sig_sfh = hpd_sfh_2sigma[1] - mode_sfh
+        det_sig_stat.append(2.0*mode_nom/dtd_2sig_stat)
+        det_sig_sfh.append(2.0*mode_sfh/dtd_2sig_sfh)
+
+        dtd_staterr_up.append(hpd_nom_1sigma[1] - mode_nom)
+        dtd_staterr_down.append(mode_nom - hpd_nom_1sigma[0])
+        dtd_sfherr_up.append(hpd_sfh_1sigma[1] - mode_sfh)
+        dtd_sfherr_down.append(mode_sfh - hpd_sfh_1sigma[0])
+
+
+    return (np.array(mode_nom_arr), np.array(mode_sfh_arr), dtd_staterr_up, dtd_staterr_down, dtd_sfherr_up, dtd_sfherr_down, det_sig_stat, det_sig_sfh)
+
+def dtd_randomsad_errors(data_SFH, mult_factor=1., saveTable = True):
+    """
+    Returns the DTD per bin with sad errors only
                 MCMC chain contain dtd for the nominal SFH
 
     Return
@@ -232,6 +290,7 @@ def dtd_randomsad_errors(data_SFH, mult_factor=1., saveTable = True):
     actual_med = []
     actual_dtd_2sig = []
     isuplim = []
+    det_sig = []
     for data_sfh in mult_factor*data_SFH.T:
 
 
@@ -242,6 +301,7 @@ def dtd_randomsad_errors(data_SFH, mult_factor=1., saveTable = True):
         dtd_2sigma = hpd_sfh_2sigma[1] - mode_sfh
         dtd_1sigma_low = mode_sfh - hpd_sfh_1sigma[0]
         dtd_1sigma_up = hpd_sfh_1sigma[1] - mode_sfh
+        det_sig.append(2.0*mode_sfh/dtd_2sigma)
 
         if (mode_sfh - dtd_2sigma) < 0:
             isuplim.append(True)
@@ -266,10 +326,11 @@ def dtd_randomsad_errors(data_SFH, mult_factor=1., saveTable = True):
         t['1sigma_low'] = np.asarray(actual_error)[:, 0]
         t['1sigma_up'] = np.asarray(actual_error)[:, 1]
         t['2sigma'] = actual_dtd_2sig
-        t['isuplim'] = isuplim
+        t['detection?'] = isuplim
+        t['det_sig'] = det_sig
         t.meta['comments'] = ['Errors on DTD']
         t.write('DTD_Error_Table.txt', overwrite=True, format='ascii')
-    return (med, error, actual_med, actual_error, isuplim)
+    return (med, error, actual_med, actual_error, isuplim, det_sig)
 
 
 def dtd_saderrors(data_low, data_nominal, data_high):
@@ -287,9 +348,13 @@ def dtd_saderrors(data_low, data_nominal, data_high):
     
     """
 
-    med_nominal = np.array([dtd_mode(data) for data in data_nominal.T])
-    med_low     = np.array([dtd_mode(data) for data in data_low.T])
-    med_high    = np.array([dtd_mode(data) for data in data_high.T])
+#    med_nominal = np.array([dtd_mode(data) for data in data_nominal.T])
+#    med_low     = np.array([dtd_mode(data) for data in data_low.T])
+#    med_high    = np.array([dtd_mode(data) for data in data_high.T])
+
+    med_nominal = np.array([np.median(data) for data in data_nominal.T])
+    med_low     = np.array([np.median(data) for data in data_low.T])
+    med_high    = np.array([np.median(data) for data in data_high.T])
 
     return (med_nominal - med_low, med_high - med_nominal)
 

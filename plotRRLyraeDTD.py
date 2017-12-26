@@ -10,16 +10,17 @@ from scipy import interpolate
 from scipy import stats
 from astropy.io import ascii
 from scipy import integrate
-
+import sys
 
 DTDpath = '/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/'
 
 #~~~~~~~~ INPUT ~~~~~~~~~~~~~~~~~~~#
+file_special_prefix = ''#'Fake_'
 outfilePrefix = 'DTD_Plots/'
 objName = 'RRLyrae'
-obj_subtype_arr = ['RRab', 'RRc', 'RRd']
-subfolderName = 'RRLyrae_linearSFH'
-filePrefix = DTDpath + 'MCMC_DTD_fits/DTD_'+objName+'/' + subfolderName + '/'
+obj_subtype_arr = ['All']
+subfolderName = 'RRLyrae_linearSFH/'
+filePrefix = DTDpath + file_special_prefix+'MCMC_DTD_fits/DTD_'+objName+'/' + subfolderName 
 sfhBinType = 'Unbinned'
 nIterations = 100
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -48,6 +49,7 @@ for obj_subtype in obj_subtype_arr:
     chain_nom_rrl.append(x_nom)
     chain_low.append(x_low)
     chain_high.append(x_high)
+
     
 #Flatten the chains into a 2D array, with rows equal to #chain elements
 #and columns = #parameters
@@ -69,8 +71,15 @@ for par in range(nParams):
     
 chain_SFH_rrl = chain_SFH.T
 
-plot_dtd.errorTable(chain_nom_rrl, chain_low, chain_high, [chain_SFH_rrl], objName, obj_subtype_arr, sfhBinType)
+#plot_dtd.errorTable(chain_nom_rrl, chain_low, chain_high, [chain_SFH_rrl], objName, obj_subtype_arr, sfhBinType)
 
-plot_dtd.plot_dtds_SFH(chain_nom_rrl, [chain_SFH_rrl], objName, obj_subtype_arr, sfhBinType = [sfhBinType], mult_factor=1.0, \
-          colorScheme = 'bmh', stat_sad_crit = False, show_errors = True, show_uplims = True, savefigure = True, \
-              savefile = DTDpath + 'Writeup/RRLyrae_DTD_noOutliers.pdf')
+#trueDTD = np.concatenate(([0.]*14, [1.0e-5]*2))
+trueDTD = np.array([])
+if 1:
+    plot_dtd.plot_dtds_SFH(chain_nom_rrl, [chain_SFH_rrl], trueDTD, objName, obj_subtype_arr, sfhBinType = [sfhBinType], mult_factor=1.0, \
+                               colorScheme = 'bmh', stat_sad_crit = False, show_errors = True, show_uplims = True, savefigure = False, plot_title='OGLE III Result - Statistical', ylabel='RR Lyrae DTD', savefile = DTDpath + 'Writeup/'+objName+file_special_prefix+'_DTD_DetSigs_Statistical.pdf')
+
+if 0:
+    plot_dtd.plot_dtds_AllErrors(chain_nom_rrl, [chain_SFH_rrl], trueDTD, objName, obj_subtype_arr, sfhBinType = [sfhBinType], mult_factor=1.0, \
+          colorScheme = 'bmh', stat_sad_crit = False, show_errors = True, show_uplims = True, savefigure = False, \
+              savefile = DTDpath + 'Writeup/'+objName+file_special_prefix+'_DTD_noOutliers_Cepheids.pdf')

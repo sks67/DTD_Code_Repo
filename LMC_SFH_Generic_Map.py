@@ -21,12 +21,12 @@ from astropy.time import Time
 #Read Generic catalogs
 DTDpath = '/Users/sumits2k/Desktop/Research/SNResearch2/RadioSNRs/DTD/'
 if False:
-   fileName = DTDpath+'InputFiles/OGLE_LMC_ClassCeph.txt'
+   fileName = DTDpath+'InputFiles/OGLE_LMC_ClassCeph_noOutliers.txt'
    objClassName = 'Cepheids'
    refName = 'OGLE'
 
 if False:
-   fileName = DTDpath+'InputFiles/OGLE_LMC_Type2Ceph.txt'
+   fileName = DTDpath+'InputFiles/OGLE_LMC_Type2Ceph_noOutliers.txt'
    objClassName = 'Type2_Cepheids'
    refName = 'OGLE'
 
@@ -109,7 +109,6 @@ if False:
 obj_subtype = 'All'
 objListRA, objListDec = dtdutils.object_ra_decs(fileName, objClassName, obj_subtype=obj_subtype)
 
-#Read SFH map
 
 sfhFileName = DTDpath + 'MC_SFH_Maps/lmc_sfh.dat'
 outPathName = DTDpath + 'Output_SFH_Files/'
@@ -215,7 +214,6 @@ for cell in range(nCells) :
             
 print 'HZ cells in survey area: ', cellInSurvey.sum()
 print 'Total objects: ', nObjAcc, objMap.sum()
-
 ###================================================##
 ### <><><><><><> FITS Table approach <><><><><><><>##
 ###================================================##
@@ -224,7 +222,7 @@ print 'Total objects: ', nObjAcc, objMap.sum()
 
 #If requested, read LMC image and produce a map of objects
 print '\n\nMaking object Map...'
-if False :
+if False:
     fig = aplpy.FITSFigure(DTDpath + 'InputFiles/LMC60.M0NHC.FITS')
     fig.set_theme('publication')
     fig.recenter(5.35*15.0,-68.75,radius=4.5)
@@ -236,13 +234,14 @@ if False :
     fig.grid.set_color('black')
     fig.show_grayscale()
     fig.show_markers(15.0*np.asarray(objListRA), np.asarray(objListDec), edgecolor='red', marker='.', s=1)
-    fig.add_label(15.0*5.75,-65.5, objClassName+' from '+refName, color = 'black',size = 16)
-    #fig.add_label(15.0*5.6,-65.5, objClassName+' from Reid & Parker (2010)', color = 'black',size = 16)
+  #  fig.add_label(15.0*5.75,-65.5, objClassName+' from '+refName, color = 'black',size = 16)
+    fig.add_label(15.0*5.6,-64.7, objClassName+' from OGLE III', color = 'black',size = 16)
     fig.tick_labels.set_yformat('dd')
     fig.tick_labels.set_xformat('hh:mm')
-#    fig.show_markers(cellCentersRA,cellCentersDec,marker='o',edgecolor='blue')
-#    fig.show_markers(cellCentersRA[cellInSurvey],cellCentersDec[cellInSurvey],marker='o',edgecolor='green')
-#    fig.show_rectangles(xw=cellCentersRA, yw=cellCentersDec, width=0.2, height=0.2, color='k')
+ #   fig.show_markers(cellCentersRA,cellCentersDec,marker='o',edgecolor='blue', alpha=0.5)
+    fig.show_markers(cellCentersRA[cellInSurvey],cellCentersDec[cellInSurvey],marker='o',edgecolor='blue', s=7.0)
+    fig.show_rectangles(xw=cellCentersRA[cellInSurvey][100:200], yw=cellCentersDec[cellInSurvey][100:200], width=0.2, height=0.2, color='k', \
+                           transform=fig.get_transform('icrs'))
 #Overlay Reid&Parker coverage for PNe 
     if refName == 'Reid&Parker' :  #Made some changes to this codeblock. Using a combination of SkyCoord and transform_to instead
         # of coord.FK5 and precess_to()
@@ -251,7 +250,8 @@ if False :
         #print fieldCenter.ra.deg, fieldCenter.dec.deg
         fig.show_rectangles(fieldCenter.ra.deg, fieldCenter.dec.deg, 5.25, 5.25, color = 'orange')
 
-    fig.save(outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_Map.pdf')
+    fig.save(outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_Map_OGLE.pdf', dpi=100)
+    fig.save(outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_Map.png')
 
 
 #Bin SFH map and write final file
@@ -317,6 +317,8 @@ for scheme in range(nSchemes) :
 
                 #corrList.append(corrListScheme/corrListSchemeNorm)
 
+
+
     #Write SFH_Cells files for random objects
     generateRandom = False
     if generateRandom :
@@ -333,6 +335,7 @@ for scheme in range(nSchemes) :
                     f.write('         ')
                     f.write((nBinsScheme*'%0.3e  ') % tuple(sfhMapBinned[:,2,cell]))
                     f.write('\n')
+
 
 #Plot maps
 createMaps = True
@@ -407,7 +410,7 @@ colorscheme = ['#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800
 
  #Plot unbinned
 print 'Unbinned Map with objects...'
-if True:
+if False:
     plotFileName = outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_'+refName+'_Unbinned_Maps.pdf'
     plt.figure(1,figsize = [11.0, 8.5])
     plt.clf()
@@ -430,7 +433,7 @@ if True:
 
 ##RRLyraeLB Map
 print 'RRLyraeLB Map with objects...'
-if True:
+if False:
     plotFileName = outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_'+refName+'_RRLyraeLB_Maps.pdf'
     plt.figure(1,figsize = [11.0, 8.5])
     plt.clf()
@@ -456,7 +459,7 @@ if True:
 
 #Plothistograms
 print 'Unbinned Map histograms...'
-if True:
+if False:
     plotFileName = outPathName+'LMC_'+objClassName+'_'+obj_subtype+'_'+refName+'_Unbinned_Histograms.pdf'
     plt.figure(1,figsize = [11.0, 8.5])
     plt.clf()
